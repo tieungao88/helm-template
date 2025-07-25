@@ -1,0 +1,25 @@
+# Files to ignore when packaging Helm charts
+# This file works similarly to .gitignore
+# For more info, see https://helm.sh/docs/chart_best_practices/helm_ignore/
+
+# Tarballs
+*.tgz
+*.tar.gz
+
+# Charts directory (if you have subcharts not defined as dependencies)
+charts/
+
+# IDE files
+.vscode/
+.idea/
+
+# Local Python/Go build artifacts
+__pycache__/
+*.pyc
+*.bin
+*.exe
+vendor/ # if you're not vendoring in your chart source
+
+# Configuration files
+.env
+.env.*

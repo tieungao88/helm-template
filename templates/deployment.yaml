@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "my-app-chart.fullname" . }}
+  labels:
+    {{- include "my-app-chart.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.hpa.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "my-app-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "my-app-chart.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "my-app-chart.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env: # Biến môi trường bổ sung
+            {{- toYaml .Values.extraEnv | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.configMaps }}
+              {{- range $cmKey, $configMap := .Values.configMaps }}
+                {{- if $configMap.enabled }}
+                  {{- range $mountKey, $mount := $configMap.mounts }}
+            - name: {{ include "my-app-chart.fullname" $root }}-{{ $cmKey }}-volume
+              mountPath: {{ $mount.mountPath }}
+              subPath: {{ $mount.subPath }}
+              readOnly: true
+                  {{- end }}
+                {{- end }}
+              {{- end }}
+            {{- end }}
+            # Mount Persistent Volume Claim (nếu được kích hoạt)
+            {{- if .Values.persistence.enabled }}
+            - name: data-volume
+              mountPath: {{ .Values.persistence.mountPath | default "/app/data" }}
+              {{- if .Values.persistence.subPath }}
+              subPath: {{ .Values.persistence.subPath }}
+              {{- end }}
+            {{- end }}
+      volumes:
+        {{- if .Values.configMaps }}
+          {{- range $cmKey, $configMap := .Values.configMaps }}
+            {{- if $configMap.enabled }}
+        - name: {{ include "my-app-chart.fullname" $root }}-{{ $cmKey }}-volume
+          configMap:
+            name: {{ include "my-app-chart.fullname" $root }}-{{ $configMap.name }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        # Định nghĩa Volume cho Persistent Volume Claim (nếu được kích hoạt)
+        {{- if .Values.persistence.enabled }}
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: {{ include "my-app-chart.fullname" . }}-pvc
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

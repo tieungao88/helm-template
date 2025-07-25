@@ -1,0 +1,16 @@
+{{- range $key, $configMap := .Values.configMaps }}
+{{- if $configMap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "my-app-chart.fullname" $ }}-{{ $configMap.name }}
+  labels:
+    {{- include "my-app-chart.labels" $ | nindent 4 }}
+data:
+  {{- range $dataKey, $dataValue := $configMap.data }}
+  {{ $dataKey }}: |
+{{ $dataValue | nindent 4 }}
+  {{- end }}
+---
+{{- end }}
+{{- end }}

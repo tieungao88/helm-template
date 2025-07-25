@@ -1,0 +1,104 @@
+# --- Cấu hình ứng dụng chung ---
+replicaCount: 1
+
+image:
+  repository: your-docker-registry/your-app-image # Ví dụ: my-registry/my-go-app hoặc my-registry/my-python-app
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest" 
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000 # Hoặc 8080 tùy theo ứng dụng Flask/Go của bạn
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+# --- Cấu hình các ConfigMap sẽ được tạo và mount ---
+# Mỗi entry trong danh sách này định nghĩa một ConfigMap riêng biệt
+# và cách nó sẽ được mount vào Deployment.
+configMaps:
+  # Cấu hình cho ConfigMap đầu tiên
+  appConfig:
+    enabled: true
+    name: "main-app-config" # Tên của ConfigMap K8s (sẽ là <release-name>-main-app-config)
+    data: # Dữ liệu sẽ được đưa vào ConfigMap này
+      config.json: |
+        {
+          "admin_server": {
+            "listen_url": "0.0.0.0:3333",
+            "use_tls": false,
+            "allowed_internal_hosts": ["127.0.0.1"]
+          },
+          "db_name": "sqlite3",
+          "db_path": "/app/data/gophish.db",
+          "logging": {
+            "level": "INFO"
+          }
+        }
+      .env: |
+        DEBUG_MODE=false
+        ANALYTICS_ENABLED=true
+    # Cấu hình cách mount ConfigMap này vào Pod
+    mounts:
+      - mountPath: "/app/config.json" # Đường dẫn cụ thể cho file config.json
+        subPath: "config.json"
+      - mountPath: "/app/.env" # Đường dẫn cụ thể cho file .env
+        subPath: ".env"
+  
+  # Cấu hình cho ConfigMap thứ hai (ví dụ: cho Nginx hoặc một sidecar)
+  nginxConfig:
+    enabled: false # Đặt thành true để bật ConfigMap này
+    name: "nginx-proxy-config"
+    data:
+      nginx.conf: |
+        server {
+            listen 80;
+            server_name localhost;
+            location / {
+                proxy_pass http://localhost:5000;
+            }
+        }
+    mounts:
+      - mountPath: "/etc/nginx/nginx.conf"
+        subPath: "nginx.conf"
+
+# --- Cấu hình Persistent Volume Claim ---
+persistence:
+  enabled: false
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 8Gi
+  # mountPath: /app/data # Đường dẫn nơi PVC sẽ được mount trong container
+  # subPath: "" # Optional subPath within the volume
+
+# --- Cấu hình biến môi trường bổ sung (ngoài ConfigMap) ---
+extraEnv: []
+  # - name: MY_CUSTOM_ENV_VAR
+  #   value: "my_value"
