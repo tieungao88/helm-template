@@ -1,0 +1,148 @@
+# --- Cấu hình ứng dụng chung ---
+replicaCount: 1
+
+image:
+  repository: your-docker-registry/your-app-image
+  pullPolicy: IfNotPresent
+  tag: "latest" 
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000 
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+# --- Cấu hình các ConfigMap sẽ được tạo và mount (giữ nguyên từ bản cập nhật trước) ---
+configMaps:
+  config-json:
+    enabled: true
+    name: "phish-config"
+    data:
+      config.json: |-
+        {
+          "admin_server": {
+            "listen_url": "0.0.0.0:3333",
+            "use_tls": true,
+            "cert_path": "gophish_admin.crt",
+            "key_path": "gophish_admin.key"
+          },
+          "phish_server": {
+            "listen_url": "0.0.0.0:80",
+            "use_tls": false,
+            "cert_path": "example.crt",
+            "key_path": "example.key"
+          },
+          "db_name": "mysql",
+          "db_path": ":@(mysql:3306)/gophish?charset=utf8&parseTime=True&loc=UTC",
+          "migrations_prefix": "db/db_",
+          "contact_address": "",
+          "domain": "",
+          "logging": {
+            "filename": "./gophish.log",
+            "level": "info"
+          },
+          "provider": [
+            {
+              "name": "textanywhere",
+              "url" : "https://api.textanywhere.com/API/v1.0/REST"
+            },
+            {
+              "name" : "freesms",
+              "url": "https://admin.freesms.vn/services/send.php?"
+            },
+            {
+              "name" : "skillspar",
+              "url" : ":5000"
+            },
+            {
+              "name" : "telegram",
+              "url" : ""
+            },
+            {
+              "name" : "whatsapp",
+              "url" : ""
+            }
+          ],
+          "qr_code": {
+            "file_path": ""
+          },
+          "s3":{
+            "aws_region": "",
+            "aws_bucket": "",
+            "cloud_font_url": ""
+          },
+          "skillspar_client": "",
+          "evilginx_client": "",
+          "evilginx_client1": "",
+          "suffix_domain1": "",
+          "evilginx_client2": "",
+          "suffix_domain2": "",
+          "attachment_server": ""
+        }
+      .env: |-
+        AWS_ACCESS_KEY_ID=""
+        AWS_SECRET_ACCESS_KEY=""
+        AWS_REGION=""
+        AWS_ENDPOINT=""
+        AWS_BUCKET=""
+        SHORT_LINK_SERVER=""
+        SHORT_LINK_SECRET=""
+    mounts:
+      - mountPath: "/opt/gophish/config.json"
+        subPath: "config.json"
+      - mountPath: "/opt/gophish/.env"
+        subPath: ".env"
+  otherconfig:
+    enabled: false
+    name: ""
+    data:
+      nginx.conf: |-
+        {}
+    mounts:
+      - mountPath: ""
+        subPath: ""
+
+# --- Cấu hình MỚI cho Nhiều Persistent Volume Claims ---
+persistentVolumes:
+  dataVolume: # Tên tùy chỉnh cho PVC này (sẽ dùng trong tên volume/PVC)
+    enabled: false
+    storageClassName: "gp3" # Ví dụ: "standard", "gp2"
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
+    mountPath: "" # Đường dẫn trong container /opt/gophish/data
+    subPath: "" # Optional subPath within the volume if you want to mount a subdirectory
+
+  staticFilesVolume: # Tên tùy chỉnh cho PVC thứ hai (cho static files)
+    enabled: false
+    storageClassName: "gp3" 
+    accessModes:
+      - ReadOnlyMany # Ví dụ: nếu chỉ cần đọc từ nhiều Pod
+    size: 500Mi
+    mountPath: "" # Đường dẫn trong container /opt/gophish/static
+    subPath: ""
+
+
+# --- Cấu hình biến môi trường bổ sung (ngoài ConfigMap) ---
+extraEnv: []

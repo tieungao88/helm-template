@@ -8,8 +8,8 @@ metadata:
     {{- include "my-app-chart.labels" $ | nindent 4 }}
 data:
   {{- range $dataKey, $dataValue := $configMap.data }}
-  {{ $dataKey }}: |
-{{ $dataValue | nindent 4 }}
+  {{ $dataKey }}: |-
+{{- $dataValue | nindent 4 }}
   {{- end }}
 ---
 {{- end }}

@@ -1,5 +1,5 @@
-{{- range $key, $pvc := .Values.persistentVolumes }}
-{{- if $pvc.enabled }}
+{{- range $key, $persistentVolumes := .Values.persistentVolumes }}
+{{- if $persistentVolumes.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -8,12 +8,12 @@ metadata:
     {{- include "my-app-chart.labels" $ | nindent 4 }}
 spec:
   accessModes:
-    {{- toYaml $pvc.accessModes | nindent 4 }}
+    {{- toYaml $persistentVolumes.accessModes | nindent 4 }}
   resources:
     requests:
-      storage: {{ $pvc.size }}
-  {{- if $pvc.storageClassName }}
-  storageClassName: {{ $pvc.storageClassName }}
+      storage: {{ $persistentVolumes.size }}
+  {{- if $persistentVolumes.storageClassName }}
+  storageClassName: {{ $persistentVolumes.storageClassName }}
   {{- end }}
 ---
 {{- end }}

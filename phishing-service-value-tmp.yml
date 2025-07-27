@@ -15,7 +15,7 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: abc-my-app-chart-main-app-config
+  name: abc-my-app-chart-phish-config
   labels:
     helm.sh/chart: my-app-chart-0.1.0
     app.kubernetes.io/name: my-app-chart
@@ -23,24 +23,74 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 data:
-  .env: |
-
-    DEBUG_MODE=false
-    ANALYTICS_ENABLED=true
-    
-  config.json: |
-
+  .env: |-
+    AWS_ACCESS_KEY_ID=""
+    AWS_SECRET_ACCESS_KEY=""
+    AWS_REGION=""
+    AWS_ENDPOINT=""
+    AWS_BUCKET=""
+    SHORT_LINK_SERVER=""
+    SHORT_LINK_SECRET=""
+  config.json: |-
     {
       "admin_server": {
         "listen_url": "0.0.0.0:3333",
-        "use_tls": false,
-        "allowed_internal_hosts": ["127.0.0.1"]
+        "use_tls": true,
+        "cert_path": "gophish_admin.crt",
+        "key_path": "gophish_admin.key"
       },
-      "db_name": "sqlite3",
-      "db_path": "/app/data/gophish.db",
+      "phish_server": {
+        "listen_url": "0.0.0.0:80",
+        "use_tls": false,
+        "cert_path": "example.crt",
+        "key_path": "example.key"
+      },
+      "db_name": "mysql",
+      "db_path": ":@(mysql:3306)/gophish?charset=utf8&parseTime=True&loc=UTC",
+      "migrations_prefix": "db/db_",
+      "contact_address": "",
+      "domain": "",
       "logging": {
-        "level": "INFO"
-      }
+        "filename": "./gophish.log",
+        "level": "info"
+      },
+      "provider": [
+        {
+          "name": "textanywhere",
+          "url" : "https://api.textanywhere.com/API/v1.0/REST"
+        },
+        {
+          "name" : "freesms",
+          "url": "https://admin.freesms.vn/services/send.php?"
+        },
+        {
+          "name" : "skillspar",
+          "url" : ":5000"
+        },
+        {
+          "name" : "telegram",
+          "url" : ""
+        },
+        {
+          "name" : "whatsapp",
+          "url" : ""
+        }
+      ],
+      "qr_code": {
+        "file_path": ""
+      },
+      "s3":{
+        "aws_region": "",
+        "aws_bucket": "",
+        "cloud_font_url": ""
+      },
+      "skillspar_client": "",
+      "evilginx_client": "",
+      "evilginx_client1": "",
+      "suffix_domain1": "",
+      "evilginx_client2": "",
+      "suffix_domain2": "",
+      "attachment_server": ""
     }
 ---
 # Source: my-app-chart/templates/service.yaml
@@ -113,18 +163,18 @@ spec:
               port: http
           resources:
             null
-          volumeMounts:
-            - name: abc-my-app-chart-appConfig-volume
-              mountPath: /app/config.json
+          volumeMounts: # Gán root context
+            - name: abc-my-app-chart-config-json-volume
+              mountPath: /opt/gophish/config.json
               subPath: config.json
               readOnly: true
-            - name: abc-my-app-chart-appConfig-volume
-              mountPath: /app/.env
+            - name: abc-my-app-chart-config-json-volume
+              mountPath: /opt/gophish/.env
               subPath: .env
               readOnly: true
-            # Mount Persistent Volume Claim (nếu được kích hoạt)
-      volumes:
-        - name: abc-my-app-chart-appConfig-volume
+            # --- Cấu hình mount các Persistent Volume Claims ---
+      volumes: # Gán root context
+        - name: abc-my-app-chart-config-json-volume
           configMap:
-            name: abc-my-app-chart-main-app-config
-        # Định nghĩa Volume cho Persistent Volume Claim (nếu được kích hoạt)
+            name: abc-my-app-chart-phish-config
+        # --- Định nghĩa các Volume cho Persistent Volume Claims ---

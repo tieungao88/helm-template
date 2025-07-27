@@ -62,7 +62,7 @@ configMaps:
         subPath: ".env"
   
   nginxConfig:
-    enabled: false
+    enabled: true
     name: "nginx-proxy-config"
     data:
       nginx.conf: |
@@ -79,11 +79,11 @@ configMaps:
 
 # --- Cấu hình MỚI cho Nhiều Persistent Volume Claims ---
 persistentVolumes:
-  enabled: true # Đặt thành true để kích hoạt việc tạo và mount các PVC
+  # enabled: true # Đặt thành true để kích hoạt việc tạo và mount các PVC
   # Định nghĩa từng PVC bạn muốn tạo
   dataVolume: # Tên tùy chỉnh cho PVC này (sẽ dùng trong tên volume/PVC)
     enabled: true
-    storageClassName: "" # Ví dụ: "standard", "gp2"
+    storageClassName: "gp3" # Ví dụ: "standard", "gp2"
     accessModes:
       - ReadWriteOnce
     size: 1Gi
@@ -92,7 +92,7 @@ persistentVolumes:
 
   staticFilesVolume: # Tên tùy chỉnh cho PVC thứ hai (cho static files)
     enabled: true
-    storageClassName: "" 
+    storageClassName: "gp3" 
     accessModes:
       - ReadOnlyMany # Ví dụ: nếu chỉ cần đọc từ nhiều Pod
     size: 500Mi
@@ -101,7 +101,7 @@ persistentVolumes:
 
   logsVolume: # Tên tùy chỉnh cho PVC thứ ba (cho logs)
     enabled: false # Tắt mặc định, có thể bật nếu cần lưu log ra ngoài container
-    storageClassName: "" 
+    storageClassName: "gp3" 
     accessModes:
       - ReadWriteOnce
     size: 100Mi

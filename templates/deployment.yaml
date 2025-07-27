@@ -64,7 +64,7 @@ spec:
               {{- end }}
             {{- end }}
             # --- Cấu hình mount các Persistent Volume Claims ---
-            {{- if .Values.persistentVolumes.enabled }}
+            {{- if .Values.persistentVolumes }}
               {{- range $pvcKey, $pvc := .Values.persistentVolumes }}
                 {{- if $pvc.enabled }}
             - name: {{ include "my-app-chart.fullname" $root }}-{{ $pvcKey }}-volume # Tên volumeMount tương ứng với tên Volume
@@ -87,7 +87,7 @@ spec:
           {{- end }}
         {{- end }}
         # --- Định nghĩa các Volume cho Persistent Volume Claims ---
-        {{- if .Values.persistentVolumes.enabled }}
+        {{- if .Values.persistentVolumes }}
           {{- range $pvcKey, $pvc := .Values.persistentVolumes }}
             {{- if $pvc.enabled }}
         - name: {{ include "my-app-chart.fullname" $root }}-{{ $pvcKey }}-volume # Tên Volume tương ứng với tên PVC
