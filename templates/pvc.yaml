@@ -1,17 +1,20 @@
-{{- if .Values.persistence.enabled }}
+{{- range $key, $pvc := .Values.persistentVolumes }}
+{{- if $pvc.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "my-app-chart.fullname" . }}-pvc
+  name: {{ include "my-app-chart.fullname" $ }}-{{ $key }}-pvc # Tên PVC sẽ là <release-name>-<chart-name>-<key-tu-values>-pvc
   labels:
-    {{- include "my-app-chart.labels" . | nindent 4 }}
+    {{- include "my-app-chart.labels" $ | nindent 4 }}
 spec:
   accessModes:
-    {{- toYaml .Values.persistence.accessModes | nindent 4 }}
+    {{- toYaml $pvc.accessModes | nindent 4 }}
   resources:
     requests:
-      storage: {{ .Values.persistence.size }}
-  {{- if .Values.persistence.storageClassName }}
-  storageClassName: {{ .Values.persistence.storageClassName }}
+      storage: {{ $pvc.size }}
+  {{- if $pvc.storageClassName }}
+  storageClassName: {{ $pvc.storageClassName }}
   {{- end }}
+---
+{{- end }}
 {{- end }}

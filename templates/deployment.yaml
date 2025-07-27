@@ -50,6 +50,7 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+            {{- $root := . }} # Gán root context
             {{- if .Values.configMaps }}
               {{- range $cmKey, $configMap := .Values.configMaps }}
                 {{- if $configMap.enabled }}
@@ -62,15 +63,20 @@ spec:
                 {{- end }}
               {{- end }}
             {{- end }}
-            # Mount Persistent Volume Claim (nếu được kích hoạt)
-            {{- if .Values.persistence.enabled }}
-            - name: data-volume
-              mountPath: {{ .Values.persistence.mountPath | default "/app/data" }}
-              {{- if .Values.persistence.subPath }}
-              subPath: {{ .Values.persistence.subPath }}
+            # --- Cấu hình mount các Persistent Volume Claims ---
+            {{- if .Values.persistentVolumes.enabled }}
+              {{- range $pvcKey, $pvc := .Values.persistentVolumes }}
+                {{- if $pvc.enabled }}
+            - name: {{ include "my-app-chart.fullname" $root }}-{{ $pvcKey }}-volume # Tên volumeMount tương ứng với tên Volume
+              mountPath: {{ $pvc.mountPath }}
+              {{- if $pvc.subPath }}
+              subPath: {{ $pvc.subPath }}
+              {{- end }}
+                {{- end }}
               {{- end }}
             {{- end }}
       volumes:
+        {{- $root := . }} # Gán root context
         {{- if .Values.configMaps }}
           {{- range $cmKey, $configMap := .Values.configMaps }}
             {{- if $configMap.enabled }}
@@ -80,11 +86,15 @@ spec:
             {{- end }}
           {{- end }}
         {{- end }}
-        # Định nghĩa Volume cho Persistent Volume Claim (nếu được kích hoạt)
-        {{- if .Values.persistence.enabled }}
-        - name: data-volume
+        # --- Định nghĩa các Volume cho Persistent Volume Claims ---
+        {{- if .Values.persistentVolumes.enabled }}
+          {{- range $pvcKey, $pvc := .Values.persistentVolumes }}
+            {{- if $pvc.enabled }}
+        - name: {{ include "my-app-chart.fullname" $root }}-{{ $pvcKey }}-volume # Tên Volume tương ứng với tên PVC
           persistentVolumeClaim:
-            claimName: {{ include "my-app-chart.fullname" . }}-pvc
+            claimName: {{ include "my-app-chart.fullname" $root }}-{{ $pvcKey }}-pvc # Liên kết với tên PVC đã tạo
+            {{- end }}
+          {{- end }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

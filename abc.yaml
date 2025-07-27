@@ -1,0 +1,130 @@
+---
+# Source: my-app-chart/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: abc-my-app-chart
+  labels:
+    helm.sh/chart: my-app-chart-0.1.0
+    app.kubernetes.io/name: my-app-chart
+    app.kubernetes.io/instance: abc
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: my-app-chart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: abc-my-app-chart-main-app-config
+  labels:
+    helm.sh/chart: my-app-chart-0.1.0
+    app.kubernetes.io/name: my-app-chart
+    app.kubernetes.io/instance: abc
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  .env: |
+
+    DEBUG_MODE=false
+    ANALYTICS_ENABLED=true
+    
+  config.json: |
+
+    {
+      "admin_server": {
+        "listen_url": "0.0.0.0:3333",
+        "use_tls": false,
+        "allowed_internal_hosts": ["127.0.0.1"]
+      },
+      "db_name": "sqlite3",
+      "db_path": "/app/data/gophish.db",
+      "logging": {
+        "level": "INFO"
+      }
+    }
+---
+# Source: my-app-chart/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: abc-my-app-chart
+  labels:
+    helm.sh/chart: my-app-chart-0.1.0
+    app.kubernetes.io/name: my-app-chart
+    app.kubernetes.io/instance: abc
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: my-app-chart
+    app.kubernetes.io/instance: abc
+---
+# Source: my-app-chart/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: abc-my-app-chart
+  labels:
+    helm.sh/chart: my-app-chart-0.1.0
+    app.kubernetes.io/name: my-app-chart
+    app.kubernetes.io/instance: abc
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: my-app-chart
+      app.kubernetes.io/instance: abc
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: my-app-chart
+        app.kubernetes.io/instance: abc
+    spec:
+      serviceAccountName: abc-my-app-chart
+      securityContext:
+        null
+      containers:
+        - name: my-app-chart
+          securityContext:
+            null
+          image: "your-docker-registry/your-app-image:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          env: # Biến môi trường bổ sung
+            []
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            null
+          volumeMounts:
+            - name: abc-my-app-chart-appConfig-volume
+              mountPath: /app/config.json
+              subPath: config.json
+              readOnly: true
+            - name: abc-my-app-chart-appConfig-volume
+              mountPath: /app/.env
+              subPath: .env
+              readOnly: true
+            # Mount Persistent Volume Claim (nếu được kích hoạt)
+      volumes:
+        - name: abc-my-app-chart-appConfig-volume
+          configMap:
+            name: abc-my-app-chart-main-app-config
+        # Định nghĩa Volume cho Persistent Volume Claim (nếu được kích hoạt)

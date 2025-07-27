@@ -2,9 +2,8 @@
 replicaCount: 1
 
 image:
-  repository: your-docker-registry/your-app-image # Ví dụ: my-registry/my-go-app hoặc my-registry/my-python-app
+  repository: your-docker-registry/your-app-image
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
   tag: "latest" 
 
 serviceAccount:
@@ -15,23 +14,18 @@ serviceAccount:
 service:
   type: ClusterIP
   port: 80
-  targetPort: 5000 # Hoặc 8080 tùy theo ứng dụng Flask/Go của bạn
+  targetPort: 5000 
 
 ingress:
   enabled: false
   className: ""
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
   hosts:
     - host: chart-example.local
       paths:
         - path: /
           pathType: ImplementationSpecific
   tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
 
 hpa:
   enabled: false
@@ -39,15 +33,12 @@ hpa:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 80
 
-# --- Cấu hình các ConfigMap sẽ được tạo và mount ---
-# Mỗi entry trong danh sách này định nghĩa một ConfigMap riêng biệt
-# và cách nó sẽ được mount vào Deployment.
+# --- Cấu hình các ConfigMap sẽ được tạo và mount (giữ nguyên từ bản cập nhật trước) ---
 configMaps:
-  # Cấu hình cho ConfigMap đầu tiên
   appConfig:
     enabled: true
-    name: "main-app-config" # Tên của ConfigMap K8s (sẽ là <release-name>-main-app-config)
-    data: # Dữ liệu sẽ được đưa vào ConfigMap này
+    name: "main-app-config"
+    data:
       config.json: |
         {
           "admin_server": {
@@ -64,16 +55,14 @@ configMaps:
       .env: |
         DEBUG_MODE=false
         ANALYTICS_ENABLED=true
-    # Cấu hình cách mount ConfigMap này vào Pod
     mounts:
-      - mountPath: "/app/config.json" # Đường dẫn cụ thể cho file config.json
+      - mountPath: "/app/config.json"
         subPath: "config.json"
-      - mountPath: "/app/.env" # Đường dẫn cụ thể cho file .env
+      - mountPath: "/app/.env"
         subPath: ".env"
   
-  # Cấu hình cho ConfigMap thứ hai (ví dụ: cho Nginx hoặc một sidecar)
   nginxConfig:
-    enabled: false # Đặt thành true để bật ConfigMap này
+    enabled: false
     name: "nginx-proxy-config"
     data:
       nginx.conf: |
@@ -88,17 +77,37 @@ configMaps:
       - mountPath: "/etc/nginx/nginx.conf"
         subPath: "nginx.conf"
 
-# --- Cấu hình Persistent Volume Claim ---
-persistence:
-  enabled: false
-  storageClassName: ""
-  accessModes:
-    - ReadWriteOnce
-  size: 8Gi
-  # mountPath: /app/data # Đường dẫn nơi PVC sẽ được mount trong container
-  # subPath: "" # Optional subPath within the volume
+# --- Cấu hình MỚI cho Nhiều Persistent Volume Claims ---
+persistentVolumes:
+  enabled: true # Đặt thành true để kích hoạt việc tạo và mount các PVC
+  # Định nghĩa từng PVC bạn muốn tạo
+  dataVolume: # Tên tùy chỉnh cho PVC này (sẽ dùng trong tên volume/PVC)
+    enabled: true
+    storageClassName: "" # Ví dụ: "standard", "gp2"
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
+    mountPath: "/opt/gophish/data" # Đường dẫn trong container
+    subPath: "" # Optional subPath within the volume if you want to mount a subdirectory
+
+  staticFilesVolume: # Tên tùy chỉnh cho PVC thứ hai (cho static files)
+    enabled: true
+    storageClassName: "" 
+    accessModes:
+      - ReadOnlyMany # Ví dụ: nếu chỉ cần đọc từ nhiều Pod
+    size: 500Mi
+    mountPath: "/opt/gophish/static" # Đường dẫn trong container
+    subPath: ""
+
+  logsVolume: # Tên tùy chỉnh cho PVC thứ ba (cho logs)
+    enabled: false # Tắt mặc định, có thể bật nếu cần lưu log ra ngoài container
+    storageClassName: "" 
+    accessModes:
+      - ReadWriteOnce
+    size: 100Mi
+    mountPath: "/var/log/my-app"
+    subPath: ""
+
 
 # --- Cấu hình biến môi trường bổ sung (ngoài ConfigMap) ---
 extraEnv: []
-  # - name: MY_CUSTOM_ENV_VAR
-  #   value: "my_value"
