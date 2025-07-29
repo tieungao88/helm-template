@@ -13,8 +13,16 @@ serviceAccount:
 
 service:
   type: ClusterIP
-  port: 80
-  targetPort: 5000 
+  # Thay thế 'port' và 'targetPort' bằng một danh sách 'ports'
+  ports:
+    - name: http # Tên của port (ví dụ: http, admin, metrics)
+      port: 80   # Port mà Service sẽ lắng nghe
+      targetPort: 5000 # Port mà container sẽ lắng nghe (cổng của ứng dụng Flask/Go)
+      protocol: TCP
+    - name: admin # Ví dụ: một port khác cho admin interface
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
 
 ingress:
   enabled: false

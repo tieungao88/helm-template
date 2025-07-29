@@ -34,9 +34,11 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
+            {{- range .Values.service.ports }}
             - name: http
-              containerPort: {{ .Values.service.targetPort }}
-              protocol: TCP
+              containerPort: {{ .targetPort }}
+              protocol: {{ .protocol }}
+            {{- end }}
           env: # Biến môi trường bổ sung
             {{- toYaml .Values.extraEnv | nindent 12 }}
           livenessProbe:
